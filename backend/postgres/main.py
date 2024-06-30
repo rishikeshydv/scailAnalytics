@@ -11,3 +11,4 @@ conn = psycopg2.connect(
 cursor = conn.cursor()
 cursor.execute("SELECT * FROM users")
 print(cursor.fetchall())
+conn.close()
