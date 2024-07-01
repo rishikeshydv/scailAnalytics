@@ -1,1 +1,0 @@
-#ChatGPI Bot should be trained and integrated to give back a response of analysis of the price.

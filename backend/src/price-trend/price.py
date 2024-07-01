@@ -4,8 +4,6 @@
 #create a new collection called property_history
 #property_history -> property_id -> all information
 #make sure the property IDs are same for 'presentListings' and 'propertyHistory'
-import os
-import sys
 
 import firebase_admin
 from firebase_admin import credentials
