@@ -16,7 +16,3 @@ class FirebaseConfig:
         #show the information in the document
         # info = db.collection('User_Info').document('testuser1@gmail.com').get().to_dict()
         # print(info)
-
-# Export the db instance
-firebase_config = FirebaseConfig()
-db = firebase_config.initialize_firebase()
