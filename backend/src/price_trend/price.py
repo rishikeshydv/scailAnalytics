@@ -8,7 +8,7 @@
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
-
+import requests
 class FirebaseConfig:
     def __init__(self):
         if not firebase_admin._apps:
@@ -27,11 +27,18 @@ class PriceTrend():
         self.cityPrice = {}
         self.countyPrice = {}
         self.statePrice = {}
+        self.similarProperties = []
 
     #returns the list [year, price] for the given property_id after retrieving the data from the database
     def individual_property_price_trend(self, property_id):
         propertyData = self.database.collection('propertyHistory').document(property_id).get()._data
-        return propertyData['price']
+        #now, we get the similar properties from the database on the city, same bed, same bath
+        cityData = self.database.collection('propertyHistory')
+        for doc in cityData.stream():
+            if doc.to_dict()['city'] == propertyData['city'] and doc.to_dict()['bed'] == propertyData['bed'] and doc.to_dict()['bath'] == propertyData['bath']:
+                self.similarProperties.append(doc.to_dict())
+        return [propertyData['price'], self.similarProperties]
+    
     #returns the list [year, price] for the given city after retrieving the data from the database
     def city_property_price_trend(self, city):
         cityData = self.database.collection('propertyHistory')
@@ -41,7 +48,15 @@ class PriceTrend():
                     self.cityPrice[doc.to_dict()['street']] = doc.to_dict()['price']
                 else:
                     self.cityPrice[doc.to_dict()['street']]=doc.to_dict()['price']
-        return self.cityPrice
+        avgPrice = 0
+        cumulativeSum = 0
+        ct = 0
+        #now, we find the average price of the city
+        for key in self.cityPrice.keys():
+            cumulativeSum += self.cityPrice[key]['predictedPrice']
+            ct += 1
+        avgPrice = cumulativeSum/ct
+        return [self.cityPrice, avgPrice]
     
     #returns the list [year, price] for the given county after retrieving the data from the database
     def county_property_price_trend(self, county):
@@ -52,9 +67,17 @@ class PriceTrend():
                     self.countyPrice[doc.to_dict()['street']] = doc.to_dict()['price']
                 else:
                     self.countyPrice[doc.to_dict()['street']]=doc.to_dict()['price']
-        return self.countyPrice
+        #now, we find the average price of the county
+        avgPrice = 0
+        cumulativeSum = 0
+        ct = 0
+        for key in self.countyPrice.keys():
+            cumulativeSum += self.countyPrice[key]['predictedPrice']
+            ct += 1
+        avgPrice = cumulativeSum/ct
+        return [self.countyPrice, avgPrice]
     
-    #returns the list [year, price] for the given county after retrieving the data from the database
+    #returns the list [year, price] for the given state after retrieving the data from the database
     def state_property_price_trend(self, state):
         stateData = self.database.collection('propertyHistory')
         for doc in stateData.stream():
@@ -63,7 +86,15 @@ class PriceTrend():
                     self.statePrice[doc.to_dict()['street']] = doc.to_dict()['price']
                 else:
                     self.statePrice[doc.to_dict()['street']]=doc.to_dict()['price']
-        return self.statePrice
+        #now, we find the average price of the state
+        avgPrice = 0
+        cumulativeSum = 0
+        ct = 0
+        for key in self.statePrice.keys():
+            cumulativeSum += self.statePrice[key]['predictedPrice']
+            ct += 1
+        avgPrice = cumulativeSum/ct
+        return [self.statePrice, avgPrice]
 if __name__ == "__main__":
     print(PriceTrend().individual_property_price_trend('uuidv4'))
     print(PriceTrend().city_property_price_trend('testCity'))
