@@ -10,6 +10,23 @@ import numpy as np
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from volatility_check.volatile import Volatility
+from alerts.alert import Alerts
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import firestore
+#firebase config
+class FirebaseConfig:
+    def __init__(self):
+        if not firebase_admin._apps:
+            cred = credentials.Certificate("backend/firebase/config.json")
+            firebase_admin.initialize_app(cred, {
+                'databaseURL': 'https://speety-2175-default-rtdb.firebaseio.com'
+            })
+        self.db = firestore.client()
+    
+    def initialize_firebase(self):
+        return self.db
+    
 # Setting up a Flask app
 app = Flask(__name__)
 CORS(app)  # Enable CORS
@@ -22,13 +39,23 @@ apiKey = "your_api_key"
 
 numerical_transformer = StandardScaler()
 categorical_transformer = OneHotEncoder()
-########################################## HOUSE PREDICTION MODEL ###############################################
+########################################## HOUSE PRICE PREDICTION MODEL ###############################################
 #loading the model
 house_prediction_model = load_model('backend/src/house_price_prediction_model.keras')
 
 numerical_features = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street']
 categorical_features = ['city', 'state']
 ####################################################################################################################
+
+######################################### HOUSE RENT PREDICTION MODEL #################################
+##############
+#loading the model
+rent_prediction_model = load_model('backend/src/house_rent_prediction_model.keras')
+
+numerical_features = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street','price']
+categorical_features = ['city', 'state']
+########################################################################################################
+############
 
 
 ########################################## SALES PROBABILITY MODEL ###############################################
@@ -127,13 +154,13 @@ def geospatial(lat,lng, type):
     try:
         url = 'https://places.googleapis.com/v1/places:searchNearby'
         data = {
-    "includedTypes": ["liquor_store", "convenience_store"],
+    "includedTypes": type,
     "maxResultCount": 10,
     "locationRestriction": {
         "circle": {
             "center": {
-                "latitude": 37.7937,
-                "longitude": -122.3965
+                "latitude": lat,
+                "longitude": lng
             },
             "radius": 1000.0
         }
@@ -184,6 +211,21 @@ def predict_price():
         app.logger.error(f"Error: {e}")
         return jsonify(error="Internal Server Error"), 500
 
+#predicting the rent of the house
+@app.route('/api/v1/rent-price', methods=['POST'])
+def predict_price():
+    try:
+        df=pd.DataFrame(request.json)
+        numerical_data = numerical_transformer.transform(df[numerical_features])
+        categorical_data = categorical_transformer.transform(df[categorical_features]).toarray()
+        features = np.concatenate([numerical_data, categorical_data], axis=1)
+
+        predicted_price = rent_prediction_model.predict(features)
+        return predicted_price[0][0]
+    except Exception as e:
+        # Log the error message
+        app.logger.error(f"Error: {e}")
+        return jsonify(error="Internal Server Error"), 500
 
 @app.route('/api/v1/sales-probability', methods=['POST'])
 def predict_sales():
@@ -213,6 +255,52 @@ def check_volatility():
         propertyData =  request.json
         volatile = Volatility(propertyData)
         return volatile.checkVolatility()
+    except Exception as e:
+        # Log the error message
+        app.logger.error(f"Error: {e}")
+        return jsonify(error="Internal Server Error"), 500
+
+#sending the alerts to the user
+@app.route('/api/v1/alerts', methods=['POST'])
+def send_alerts():
+    try:
+        user_state = request.json['state']
+        alert = Alerts(user_state)
+        return alert.sendAlerts()
+    except Exception as e:
+        # Log the error message
+        app.logger.error(f"Error: {e}")
+        return jsonify(error="Internal Server Error"), 500
+    #checking if a current city has high crime rate
+@app.route('/api/v1/crime-rate', methods=['POST'])
+def check_crime_rate():
+    try:
+        city = request.json['city']
+        state = request.json['state']
+        database = FirebaseConfig().initialize_firebase()
+        cityData = database.collection('crime_rates').document("scail").get().to_dict()
+        cityDataKeys = cityData.keys()
+        for i in range(len(cityDataKeys)):
+            if city == cityData[cityDataKeys[i]]['city'] & state == cityData[cityDataKeys[i]]['state']:
+                return True
+        return False
+    except Exception as e:
+        # Log the error message
+        app.logger.error(f"Error: {e}")
+        return jsonify(error="Internal Server Error"), 500
+
+#returning the demography information of a particular city,state
+@app.route('/api/v1/demography', methods=['POST'])
+def get_demography():
+    try:
+        city = request.json['city']
+        state = request.json['state']
+        database = FirebaseConfig().initialize_firebase()
+        demographyData = database.collection('demography').document("scail").get().to_dict()
+        demographyDataKeys = demographyData.keys()
+        for i in range(len(demographyDataKeys)):
+            if city == demographyData[demographyDataKeys[i]]['City'] & state == demographyData[demographyDataKeys[i]]['state']:
+                return demographyData[demographyDataKeys[i]]
     except Exception as e:
         # Log the error message
         app.logger.error(f"Error: {e}")

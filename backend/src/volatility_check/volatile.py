@@ -24,7 +24,7 @@ class Volatility:
         predictedPrice = requests.post("http://http://127.0.0.1:8080/api/v1/predict-price", json=self.property)
         #checking the volatility
         priceDifference = abs(predictedPrice - self.property['price'])
-        if priceDifference > 100000:
+        if priceDifference > 80000:
             self.updatedProperty = self.property
             self.updatedProperty['volatility'] = 'Yes'
         else:
