@@ -30,16 +30,11 @@ class PriceTrend():
         self.similarProperties = []
 
     #returns the list [year, price] for the given property_id after retrieving the data from the database
-    def individual_property_price_trend(self, property_id):
-        propertyData = self.database.collection('propertyHistory').document(property_id).get()._data
+    def individual_property_price_trend(self, propertyData):
         #now we get the predicted price of the property
         predicted_price = requests.post('http://127.0.0.1/api/v1/predict-price',json=propertyData)
-        #now, we get the similar properties from the database on the city, same bed, same bath
-        cityData = self.database.collection('propertyHistory')
-        for doc in cityData.stream():
-            if doc.to_dict()['city'] == propertyData['city'] and doc.to_dict()['bed'] == propertyData['bed'] and doc.to_dict()['bath'] == propertyData['bath']:
-                self.similarProperties.append(doc.to_dict())
-        return [propertyData['price'], predicted_price, self.similarProperties]
+        predicted_rent = requests.post('http://127.0.0.1/api/v1/predict-price',json=propertyData)
+        return [predicted_price]
     
     #returns the list [year, price] for the given city after retrieving the data from the database
     def city_property_price_trend(self, city):

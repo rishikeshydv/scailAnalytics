@@ -41,7 +41,7 @@ numerical_transformer = StandardScaler()
 categorical_transformer = OneHotEncoder()
 ########################################## HOUSE PRICE PREDICTION MODEL ###############################################
 #loading the model
-house_prediction_model = load_model('backend/src/house_price_prediction_model.keras')
+#house_prediction_model = load_model('backend/src/house_price_prediction_model.keras')
 
 numerical_features = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street']
 categorical_features = ['city', 'state']
@@ -50,7 +50,7 @@ categorical_features = ['city', 'state']
 ######################################### HOUSE RENT PREDICTION MODEL #################################
 ##############
 #loading the model
-rent_prediction_model = load_model('backend/src/house_rent_prediction_model.keras')
+#rent_prediction_model = load_model('backend/src/house_rent_prediction_model.keras')
 
 numerical_features = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street','price']
 categorical_features = ['city', 'state']
@@ -60,7 +60,7 @@ categorical_features = ['city', 'state']
 
 ########################################## SALES PROBABILITY MODEL ###############################################
 #loading the model
-sales_prediction_model = load_model('backend/src/sales_probability_prediction_model.keras')
+#sales_prediction_model = load_model('backend/src/sales_probability_prediction_model.keras')
 
 numerical_features = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street','price']
 categorical_features = ['city', 'state']
@@ -213,7 +213,7 @@ def predict_price():
 
 #predicting the rent of the house
 @app.route('/api/v1/rent-price', methods=['POST'])
-def predict_price():
+def predict_rent():
     try:
         df=pd.DataFrame(request.json)
         numerical_data = numerical_transformer.transform(df[numerical_features])
@@ -271,6 +271,7 @@ def send_alerts():
         # Log the error message
         app.logger.error(f"Error: {e}")
         return jsonify(error="Internal Server Error"), 500
+    
     #checking if a current city has high crime rate
 @app.route('/api/v1/crime-rate', methods=['POST'])
 def check_crime_rate():
@@ -278,12 +279,13 @@ def check_crime_rate():
         city = request.json['city']
         state = request.json['state']
         database = FirebaseConfig().initialize_firebase()
-        cityData = database.collection('crime_rates').document("scail").get().to_dict()
-        cityDataKeys = cityData.keys()
+        cityData = database.collection('city_crimes').document("scail").get()._data
+        cityDataKeys = list(cityData.keys())
         for i in range(len(cityDataKeys)):
-            if city == cityData[cityDataKeys[i]]['city'] & state == cityData[cityDataKeys[i]]['state']:
-                return True
-        return False
+            if city.lower() == (cityData[cityDataKeys[i]]['city']).lower() and state.lower() == (cityData[cityDataKeys[i]]['state']).lower():
+                return cityData[cityDataKeys[i]]
+            else:
+                return "safe"
     except Exception as e:
         # Log the error message
         app.logger.error(f"Error: {e}")
@@ -299,7 +301,7 @@ def get_demography():
         demographyData = database.collection('demography').document("scail").get().to_dict()
         demographyDataKeys = demographyData.keys()
         for i in range(len(demographyDataKeys)):
-            if city == demographyData[demographyDataKeys[i]]['City'] & state == demographyData[demographyDataKeys[i]]['state']:
+            if city == demographyData[demographyDataKeys[i]]['City'] and state == demographyData[demographyDataKeys[i]]['state']:
                 return demographyData[demographyDataKeys[i]]
     except Exception as e:
         # Log the error message
