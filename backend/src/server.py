@@ -4,16 +4,15 @@ from flask_cors import CORS
 import logging
 import requests
 from keras.models import load_model
-from sklearn.preprocessing import StandardScaler,OneHotEncoder
 import pandas as pd
 import numpy as np
-from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from volatility_check.volatile import Volatility
 from alerts.alert import Alerts
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
+import joblib
 #firebase config
 class FirebaseConfig:
     def __init__(self):
@@ -37,14 +36,13 @@ logging.basicConfig(level=logging.DEBUG)
 # Setting up a GPT model API key (placeholder)
 apiKey = "your_api_key"
 
-numerical_transformer = StandardScaler()
-categorical_transformer = OneHotEncoder()
 ########################################## HOUSE PRICE PREDICTION MODEL ###############################################
 #loading the model
-#house_prediction_model = load_model('backend/src/house_price_prediction_model.keras')
+house_prediction_model = load_model('backend/src/house_price_prediction_model.h5')
+preprocessor1 = joblib.load('backend/src/preprocessor.pkl')
 
-numerical_features = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street']
-categorical_features = ['city', 'state']
+numerical_features_1 = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street']
+categorical_features_1 = ['city', 'state']
 ####################################################################################################################
 
 ######################################### HOUSE RENT PREDICTION MODEL #################################
@@ -52,8 +50,8 @@ categorical_features = ['city', 'state']
 #loading the model
 #rent_prediction_model = load_model('backend/src/house_rent_prediction_model.keras')
 
-numerical_features = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street','price']
-categorical_features = ['city', 'state']
+numerical_features_2 = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street','price']
+categorical_features_2 = ['city', 'state']
 ########################################################################################################
 ############
 
@@ -62,8 +60,8 @@ categorical_features = ['city', 'state']
 #loading the model
 #sales_prediction_model = load_model('backend/src/sales_probability_prediction_model.keras')
 
-numerical_features = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street','price']
-categorical_features = ['city', 'state']
+numerical_features_3 = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street','price']
+categorical_features_3 = ['city', 'state']
 ####################################################################################################################
 
 ##############################  CRITERIA FOR PROPERTY IMPROVEMENT AND RENOVATION ################################
@@ -199,12 +197,11 @@ def walkability(lat,lng, fullAddress):
 def predict_price():
     try:
         df=pd.DataFrame(request.json)
-        numerical_data = numerical_transformer.transform(df[numerical_features])
-        categorical_data = categorical_transformer.transform(df[categorical_features]).toarray()
-        features = np.concatenate([numerical_data, categorical_data], axis=1)
-
-        predicted_price = house_prediction_model.predict(features)
-        return predicted_price[0][0]
+        pipeline = Pipeline(steps=[('preprocessor', preprocessor1)])
+        df_preprocessed = pipeline.transform(df)
+        res = house_prediction_model.predict(df_preprocessed)
+        predicted_price = int(round(res[0][0]))
+        return jsonify(price=predicted_price)
 
     except Exception as e:
         # Log the error message
@@ -299,7 +296,7 @@ def get_demography():
         state = request.json['state']
         database = FirebaseConfig().initialize_firebase()
         demographyData = database.collection('demography').document("scail").get().to_dict()
-        demographyDataKeys = demographyData.keys()
+        demographyDataKeys = list(demographyData.keys())
         for i in range(len(demographyDataKeys)):
             if city == demographyData[demographyDataKeys[i]]['City'] and state == demographyData[demographyDataKeys[i]]['state']:
                 return demographyData[demographyDataKeys[i]]
