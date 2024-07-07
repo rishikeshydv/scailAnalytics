@@ -1,9 +1,17 @@
 from openai import OpenAI
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+#Load Environment Variables
+PRICE_TREND_GPT_API_KEY = os.getenv("PRICE_TREND_GPT_API_KEY")
+SCAIL_CONTACT_BOT_API_KEY=os.getenv("SCAIL_CONTACT_BOT_API_KEY")
+PRICE_TREND_GPT_MODEL = os.getenv("PRICE_TREND_GPT_MODEL")
+SCAIL_CONTACT_BOT_MODEL = os.getenv("SCAIL_CONTACT_BOT_MODEL")
 class Finetune:
     def __init__(self):
-        #self.secretKey="sk-proj-oOIKmJQ5tAJTL0baRdvyT3BlbkFJkLCVSancI3TNukiWlvKy"  #for price trend analyzer
-        self.secretKey="sk-proj-DBaaojqg622ljaXkaxorT3BlbkFJIYLDWazWAYlQr6C1DA6g"  #for scail contact bot
+        #self.secretKey=SCAIL_CONTACT_BOT_API_KEY  #for price trend analyzer
+        self.secretKey=PRICE_TREND_GPT_API_KEY  #for scail contact bot
         self.client = OpenAI(api_key=self.secretKey)    
 
 #this finetunes the price-trend analyzer bot
@@ -22,7 +30,7 @@ class Finetune:
         finetuneRes = self.client.fine_tuning.jobs.create(
             training_file=trainingFile.id,
             validation_file=validationFile.id,
-            model="ft:gpt-3.5-turbo-0125:personal::9hKhCk83",
+            model=PRICE_TREND_GPT_MODEL,
         )
         print(finetuneRes)
         return "Model Finetuned"
@@ -43,7 +51,7 @@ class Finetune:
         finetuneRes = self.client.fine_tuning.jobs.create(
             training_file=trainingFile.id,
             validation_file=validationFile.id,
-            model="ft:gpt-3.5-turbo-0125:personal::9hVRYHlV",
+            model=SCAIL_CONTACT_BOT_MODEL,
         )
         print(finetuneRes)
         return "Model Finetuned"

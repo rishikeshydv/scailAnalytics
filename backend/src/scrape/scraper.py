@@ -9,7 +9,7 @@ import csv
 import pandas as pd
 
 #URL of the website
-URL = "https://press.essexregister.com/prodpress/clerk/ShowDetails.aspx"
+URL = ""
 
 #sending #POST request to the website
 #postReq = requests.post(URL)

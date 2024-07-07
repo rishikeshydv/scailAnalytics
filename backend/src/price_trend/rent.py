@@ -10,12 +10,18 @@ from firebase_admin import credentials
 from firebase_admin import firestore
 from price_trend_bot.bot import PriceBot
 import requests
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+# Load the environment variables
+DATABASE_URL = os.getenv("DATABASE_URL")
 class FirebaseConfig:
     def __init__(self):
         if not firebase_admin._apps:
             cred = credentials.Certificate("backend/firebase/config.json")
             firebase_admin.initialize_app(cred, {
-                'databaseURL': 'https://speety-2175-default-rtdb.firebaseio.com'
+                'databaseURL': DATABASE_URL
             })
         self.db = firestore.client()
     

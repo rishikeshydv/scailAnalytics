@@ -7,20 +7,27 @@ from keras.models import load_model
 import pandas as pd
 import numpy as np
 from sklearn.pipeline import Pipeline
-from alerts.alert import Alerts
 from price_trend.price import PriceTrend
 from price_trend_bot.bot import PriceBot
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 import joblib
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+# Load the environment variables
+DATABASE_URL = os.getenv("DATABASE_URL")
+WALKABILITY_API_KEY = os.getenv("WALKABILITY_API_KEY")
 #firebase config
 class FirebaseConfig:
     def __init__(self):
         if not firebase_admin._apps:
             cred = credentials.Certificate("backend/firebase/config.json")
             firebase_admin.initialize_app(cred, {
-                'databaseURL': 'https://speety-2175-default-rtdb.firebaseio.com'
+                'databaseURL': DATABASE_URL
             })
         self.db = firestore.client()
     
@@ -33,9 +40,6 @@ CORS(app)  # Enable CORS
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
-
-# Walkablity API Key
-walkabilityApiKey = "5e775c237088586a07f1a8ba73969b1a"
 
 ########################################## HOUSE PRICE PREDICTION MODEL ###############################################
 #loading the model
@@ -135,7 +139,7 @@ def walkability():
         fullAddress = reqData['fullAddress']
         lat = reqData['latitude']
         lng = reqData['longitude']
-        url = f"https://api.walkscore.com/score?format=json&address={fullAddress}&lat={lat}&lon={lng}&transit=1&bike=1&wsapikey={walkabilityApiKey}"
+        url = f"https://api.walkscore.com/score?format=json&address={fullAddress}&lat={lat}&lon={lng}&transit=1&bike=1&wsapikey={WALKABILITY_API_KEY}"
         response = requests.get(url)
         return jsonify(walkabilityData=response.json()), 200
 
@@ -145,7 +149,7 @@ def walkability():
         return jsonify(error="Internal Server Error"), 500
     
 #getting the transit score of the given latitude and longitude
-@app.route('/api/v1/transit', methods=['POST'])
+@app.route('/api/v1/transit', methods=['POST'])  
 def transit():
     try:
         reqData = request.json
@@ -153,7 +157,7 @@ def transit():
         state = reqData['state']
         lat = reqData['latitude']
         lng = reqData['longitude']
-        url = f"https://transit.walkscore.com/transit/score/?lat={lat}&lon={lng}&city={city}&state={state}&wsapikey={walkabilityApiKey}"
+        url = f"https://transit.walkscore.com/transit/score/?lat={lat}&lon={lng}&city={city}&state={state}&wsapikey={WALKABILITY_API_KEY}"
         returnData = requests.get(url)
         return jsonify(transitData=returnData.json()), 200
 
@@ -203,18 +207,6 @@ def predict_sales():
         predicted_probability = int(round(res[0][0]))
         return jsonify(probability=predicted_probability)
 
-    except Exception as e:
-        # Log the error message
-        app.logger.error(f"Error: {e}")
-        return jsonify(error="Internal Server Error"), 500
-
-#sending the alerts to the user
-@app.route('/api/v1/alerts', methods=['POST'])
-def send_alerts():
-    try:
-        user_state = request.json['state']
-        alert = Alerts(user_state)
-        return alert.sendAlerts()
     except Exception as e:
         # Log the error message
         app.logger.error(f"Error: {e}")
