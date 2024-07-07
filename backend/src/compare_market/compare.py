@@ -19,16 +19,9 @@ class FirebaseConfig:
         return self.db
     
 class PropertyCompare:
-    def __init__(self,property_id, street, city, county, state, zip):
-        self.property_id = property_id
-        self.street = street
-        self.city = city
-        self.county = county
-        self.state = state
-        self.zip = zip
-        self.fullAddress = self.street + self.city + self.state + self.zip
+    def __init__(self):
         self.database = FirebaseConfig().initialize_firebase()
-        self.dbRef = self.database.collection('propertyHistory')
+        self.dbRef = self.database.collection('presentListings')
 
         #defining data structures to store the properties based on different comparisons
         self.sameStreet = {}
@@ -36,43 +29,54 @@ class PropertyCompare:
         self.sameCounty = {}
         self.sameState = {}
 
-    def compareStreet(self):
+    def compareStreet(self,street,county,city,state):
         for doc in self.dbRef.stream():
-            if (doc.to_dict()['street'] + doc.to_dict()['city'] + doc.to_dict()['county'] + doc.to_dict()['state'] + doc.to_dict()['zip'] ) == self.fullAddress:
-                if doc.to_dict()['property_id'] not in self.sameStreet.keys():
-                    self.sameStreet[doc.to_dict()['property_id']] = doc.to_dict()
-                else:
-                    self.sameStreet[doc.to_dict()['property_id']] = doc.to_dict()
+            docKeys = list(doc.to_dict().keys())
+            for key in docKeys:
+                docData = doc.to_dict()[key]
+                if (docData['street'] == street and docData['city'] == city and docData['county'] == county and docData['state'] == state):
+                    if key not in list(self.sameStreet.keys()):
+                        self.sameStreet[key] = docData
+                    else:
+                        self.sameStreet[key] = docData
 
         return self.sameStreet
 
-    def compareCity(self):
+    def compareCity(self,city,state):
         for doc in self.dbRef.stream():
-            if (doc.to_dict()['city'] + doc.to_dict()['county'] + doc.to_dict()['state'] + doc.to_dict()['zip'] ) == self.city + self.state + self.zip:
-                if doc.to_dict()['property_id'] not in self.sameCity.keys():
-                    self.sameCity[doc.to_dict()['property_id']] = doc.to_dict()
-                else:
-                    self.sameCity[doc.to_dict()['property_id']] = doc.to_dict()
-
+            docKeys = list(doc.to_dict().keys())
+            for key in docKeys:
+                docData = doc.to_dict()[key]
+                if (docData['city'] == city and docData['state'] == state):
+                    if key not in list(self.sameCity.keys()):
+                        self.sameCity[key] = docData
+                    else:
+                        self.sameCity[key] = docData
         return self.sameCity
 
-    def compareCounty(self):
+    def compareCounty(self,county,city,state):
         for doc in self.dbRef.stream():
-            if (doc.to_dict()['county'] + doc.to_dict()['state'] + doc.to_dict()['zip'] ) == self.county + self.state + self.zip:
-                if doc.to_dict()['property_id'] not in self.sameCounty.keys():
-                    self.sameCounty[doc.to_dict()['property_id']] = doc.to_dict()
-                else:
-                    self.sameCounty[doc.to_dict()['property_id']] = doc.to_dict()
+            docKeys = list(doc.to_dict().keys())
+            for key in docKeys:
+                docData = doc.to_dict()[key]
+                if (docData['county'] == county and docData['city'] == city and docData['state'] == state):
+                    if key not in list(self.sameCounty.keys()):
+                        self.sameCounty[key] = docData
+                    else:
+                        self.sameCounty[key] = docData
 
         return self.sameCounty
 
-    def compareState(self):
+    def compareState(self,state):
         for doc in self.dbRef.stream():
-            if (doc.to_dict()['state'] + doc.to_dict()['zip'] ) == self.state + self.zip:
-                if doc.to_dict()['property_id'] not in self.sameState.keys():
-                    self.sameState[doc.to_dict()['property_id']] = doc.to_dict()
-                else:
-                    self.sameState[doc.to_dict()['property_id']] = doc.to_dict()
+            docKeys = list(doc.to_dict().keys())
+            for key in docKeys:
+                docData = doc.to_dict()[key]
+                if (docData['state'] == state):
+                    if key not in list(self.sameState.keys()):
+                        self.sameState[key] = docData
+                    else:
+                        self.sameState[key] = docData
 
         return self.sameState
 

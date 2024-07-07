@@ -7,8 +7,8 @@ from keras.models import load_model
 import pandas as pd
 import numpy as np
 from sklearn.pipeline import Pipeline
-from volatility_check.volatile import Volatility
 from alerts.alert import Alerts
+from price_trend_bot.bot import PriceBot
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
@@ -33,13 +33,13 @@ CORS(app)  # Enable CORS
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
-# Setting up a GPT model API key (placeholder)
-apiKey = "your_api_key"
+# Walkablity API Key
+walkabilityApiKey = "5e775c237088586a07f1a8ba73969b1a"
 
 ########################################## HOUSE PRICE PREDICTION MODEL ###############################################
 #loading the model
 house_prediction_model = load_model('backend/src/house_price_prediction_model.h5')
-preprocessor1 = joblib.load('backend/src/preprocessor.pkl')
+preprocessor1 = joblib.load('backend/src/price_preprocessor.pkl')
 
 numerical_features_1 = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street']
 categorical_features_1 = ['city', 'state']
@@ -48,7 +48,8 @@ categorical_features_1 = ['city', 'state']
 ######################################### HOUSE RENT PREDICTION MODEL #################################
 ##############
 #loading the model
-#rent_prediction_model = load_model('backend/src/house_rent_prediction_model.keras')
+rent_prediction_model = load_model('backend/src/rent_prediction_model.h5')
+preprocessor2 = joblib.load('backend/src/rent_preprocessor.pkl')
 
 numerical_features_2 = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street','price']
 categorical_features_2 = ['city', 'state']
@@ -58,134 +59,55 @@ categorical_features_2 = ['city', 'state']
 
 ########################################## SALES PROBABILITY MODEL ###############################################
 #loading the model
-#sales_prediction_model = load_model('backend/src/sales_probability_prediction_model.keras')
+sales_prediction_model = load_model('backend/src/sales_probability_prediction_model.h5')
+preprocessor3 = joblib.load('backend/src/sales_probability_preprocessor.pkl')
 
 numerical_features_3 = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street','price']
 categorical_features_3 = ['city', 'state']
 ####################################################################################################################
 
-##############################  CRITERIA FOR PROPERTY IMPROVEMENT AND RENOVATION ################################
-
-renovation_criteria = {
-    #bath model
-  "bath_model_medium_size": "5 x 7 foot",
-  "bath_model_large_size": "9 x 9 foot",
-
-  "bath_model_medium_do_it_yourself": "5000",
-  "bath_model_medium_cost_low": "9000",
-  "bath_model_medium_cost_high": "14000",
-
-  "bath_model_large_cost_low": "35000",
-  "bath_model_large_cost_high": "45000",
-
-  #kitchen model
-
-  "kitchen_model_medium_size": "10 x 10 foot",  # 10x10 is the regular size of a kitchen
-
-  "kitchen_model_medium_do_it_yourself": "10000",
-
-  "bath_model_medium_cost_low": "15000",
-  "bath_model_medium_cost_high": "20000",
-
-  "bath_model_high_cost_low": "50000",
-  "bath_model_high_cost_high": "65000",
-
- #roof model
-
-  "roof_model_medium_size": "1700",  # sqft
-  "roof_model_large_size": "2100",  # sqft
-  "roof_model_do_it_yourself_low": "680",  # asphalt shingles
-  "roof_model_do_it_yourself_high": "3700",  # asphalt shingles
-
-  "tile_roof_low": "7650",
-  "tile_roof_high": "18000",
-
-  "metal_roof_low": "5100",
-  "metal_roof_high": "20000",
-
-  "slate_roof_low": "17000",
-  "slate_roof_high": "60000",
-
-  #house clean model
-
-  "house_clean_do_it_yourself_low": "0",
-
-  "house_clean_small_low": "74",  # 900 sqft
-  "house_clean_small_high": "200",  # 900 sqft
-
-  "house_clean_medium_low": "95",  # 1300 sqft
-  "house_clean_medium_high": "300",  # 1300 sqft
-
-  "house_clean_large_low": "149",  # 2200 sqft
-  "house_clean_large_high": "400",  # 2200 sqft
-
-  #central air conditioning model
-
-  "air_conditioning_model_low": "3500",  # 2000 sq ft
-  "air_conditioning_model_high": "4000",  # 2000 sq ft
-
-  #water boiler model
-
-  "water_boiler_model_low": "4000",
-  "water_boiler_model_high": "28000"
-}
-
- 
-####################################################################################################################
-
 #price trend for individual property
-@app.route('/api/v1/price-trend/individual-property/<property_id>', methods=['GET'])
-def individual_property_price_trend(property_id):
+@app.route('/api/v1/price-trend/individual-property', methods=['POST'])
+def individual_property_price_trend():
     try:
-        # Here you would call your GPT model or database to get the price trend
-        # For now, we return a placeholder message
-        price_trend = f"Single Property Price {property_id}"
-        return jsonify(message=price_trend), 200
-    except Exception as e:
-        # Log the error message
-        app.logger.error(f"Error: {e}")
-        return jsonify(error="Internal Server Error"), 500
-    
-#getting geospatial information of the given latitude and longitude
-@app.route('/api/v1/geospatial/<lat>/<lng>/<type>', methods=['GET'])
-def geospatial(lat,lng, type):
-    try:
-        url = 'https://places.googleapis.com/v1/places:searchNearby'
-        data = {
-    "includedTypes": type,
-    "maxResultCount": 10,
-    "locationRestriction": {
-        "circle": {
-            "center": {
-                "latitude": lat,
-                "longitude": lng
-            },
-            "radius": 1000.0
-        }
-    }
-}
-        headers = {
-    'Content-Type': 'application/json',
-    'X-Goog-Api-Key': 'AIzaSyAvamq-1AR2paooKX-Hq7LvyyfIbwNsVVU',
-    'X-Goog-FieldMask': 'places.displayName,places.primaryType,places.types'
-}
-        geoReq = requests.get(url, headers=headers, json=data)
-        if geoReq.status_code == 200:
-            return jsonify(geoReq.json()), 200
-
+        propertyInfo = request.json
+        res = PriceBot().individual_price_trend(propertyInfo['current_price'], propertyInfo['predicted_price'])
+        print(res)
+        return jsonify(message=res), 200
     except Exception as e:
         # Log the error message
         app.logger.error(f"Error: {e}")
         return jsonify(error="Internal Server Error"), 500
     
 #getting the walkability score of the given latitude and longitude
-@app.route('/api/v1/walkability/<lat>/<lng>/<fullAddress>', methods=['GET'])
-def walkability(lat,lng, fullAddress):
+@app.route('/api/v1/walkability', methods=['POST'])
+def walkability():
     try:
-        api_key="5e775c237088586a07f1a8ba73969b1a"
-        url = f"https://api.walkscore.com/score?format=json&address={fullAddress}&lat={lat}&lon={lng}&wsapikey={api_key}"
+        reqData = request.json
+        fullAddress = reqData['fullAddress']
+        lat = reqData['latitude']
+        lng = reqData['longitude']
+        url = f"https://api.walkscore.com/score?format=json&address={fullAddress}&lat={lat}&lon={lng}&transit=1&bike=1&wsapikey={walkabilityApiKey}"
         response = requests.get(url)
-        return response.json()
+        return jsonify(walkabilityData=response.json()), 200
+
+    except Exception as e:
+        # Log the error message
+        app.logger.error(f"Error: {e}")
+        return jsonify(error="Internal Server Error"), 500
+    
+#getting the transit score of the given latitude and longitude
+@app.route('/api/v1/transit', methods=['POST'])
+def transit():
+    try:
+        reqData = request.json
+        city = reqData['city']
+        state = reqData['state']
+        lat = reqData['latitude']
+        lng = reqData['longitude']
+        url = f"https://transit.walkscore.com/transit/score/?lat={lat}&lon={lng}&city={city}&state={state}&wsapikey={walkabilityApiKey}"
+        returnData = requests.get(url)
+        return jsonify(transitData=returnData.json()), 200
 
     except Exception as e:
         # Log the error message
@@ -213,12 +135,11 @@ def predict_price():
 def predict_rent():
     try:
         df=pd.DataFrame(request.json)
-        numerical_data = numerical_transformer.transform(df[numerical_features])
-        categorical_data = categorical_transformer.transform(df[categorical_features]).toarray()
-        features = np.concatenate([numerical_data, categorical_data], axis=1)
-
-        predicted_price = rent_prediction_model.predict(features)
-        return predicted_price[0][0]
+        pipeline = Pipeline(steps=[('preprocessor', preprocessor2)])
+        df_preprocessed = pipeline.transform(df)
+        res = rent_prediction_model.predict(df_preprocessed)
+        predicted_rent = int(round(res[0][0]))
+        return jsonify(rent=predicted_rent)
     except Exception as e:
         # Log the error message
         app.logger.error(f"Error: {e}")
@@ -228,30 +149,12 @@ def predict_rent():
 def predict_sales():
     try:
         df=pd.DataFrame(request.json)
-        numerical_data = numerical_transformer.transform(df[numerical_features])
-        categorical_data = categorical_transformer.transform(df[categorical_features]).toarray()
-        features = np.concatenate([numerical_data, categorical_data], axis=1)
+        pipeline = Pipeline(steps=[('preprocessor', preprocessor3)])
+        df_preprocessed = pipeline.transform(df)
+        res = sales_prediction_model.predict(df_preprocessed)
+        predicted_probability = int(round(res[0][0]))
+        return jsonify(probability=predicted_probability)
 
-        predicted_price = sales_prediction_model.predict(features)
-        return predicted_price[0][0]
-
-    except Exception as e:
-        # Log the error message
-        app.logger.error(f"Error: {e}")
-        return jsonify(error="Internal Server Error"), 500
-
-# financial impact of property improvement and renovations
-@app.route('/api/v1/renovation', methods=['GET'])
-def renovation():
-    return jsonify(renovation_criteria), 200
-
-#checking the volatility of the property
-@app.route('/api/v1/volatility', methods=['POST'])
-def check_volatility():
-    try:
-        propertyData =  request.json
-        volatile = Volatility(propertyData)
-        return volatile.checkVolatility()
     except Exception as e:
         # Log the error message
         app.logger.error(f"Error: {e}")
@@ -295,11 +198,11 @@ def get_demography():
         city = request.json['city']
         state = request.json['state']
         database = FirebaseConfig().initialize_firebase()
-        demographyData = database.collection('demography').document("scail").get().to_dict()
+        demographyData = database.collection('demography').document("scail").get()._data
         demographyDataKeys = list(demographyData.keys())
         for i in range(len(demographyDataKeys)):
-            if city == demographyData[demographyDataKeys[i]]['City'] and state == demographyData[demographyDataKeys[i]]['state']:
-                return demographyData[demographyDataKeys[i]]
+            if city == demographyData[demographyDataKeys[i]]['city'] and state == demographyData[demographyDataKeys[i]]['state']:
+                return jsonify(demography=demographyData[demographyDataKeys[i]]),200 
     except Exception as e:
         # Log the error message
         app.logger.error(f"Error: {e}")
