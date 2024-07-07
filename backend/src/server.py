@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 from sklearn.pipeline import Pipeline
 from alerts.alert import Alerts
+from price_trend.price import PriceTrend
 from price_trend_bot.bot import PriceBot
 import firebase_admin
 from firebase_admin import credentials
@@ -72,7 +73,18 @@ def individual_property_price_trend():
     try:
         propertyInfo = request.json
         res = PriceBot().individual_price_trend(propertyInfo['current_price'], propertyInfo['predicted_price'])
-        print(res)
+        return jsonify(message=res), 200
+    except Exception as e:
+        # Log the error message
+        app.logger.error(f"Error: {e}")
+        return jsonify(error="Internal Server Error"), 500
+    
+#price trend for a street
+@app.route('/api/v1/price-trend/street', methods=['POST'])
+def street_price_trend():
+    try:
+        streetInfo = request.json
+        res = PriceTrend().street_property_price_trend(streetInfo['street'], streetInfo['city'], streetInfo['state'])
         return jsonify(message=res), 200
     except Exception as e:
         # Log the error message

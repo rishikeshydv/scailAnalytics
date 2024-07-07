@@ -8,6 +8,7 @@
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
+from price_trend_bot.bot import PriceBot
 import requests
 class FirebaseConfig:
     def __init__(self):
@@ -96,8 +97,10 @@ class PriceTrend():
             cumulativeSum += price
             ct += 1
         avgPredictedPrice = cumulativeSum/ct
+        #now, we do the price analysis using price-bot
+        resAnalysis = PriceBot().street_price_trend(self.actualStreetPrice, avgPredictedPrice, street)
         #now we return the actual prices, the average predicted price, volatile properties, and all the properties on the same street
-        return [self.actualStreetPrice, avgPredictedPrice, self.volatileProperties, self.sameStreet]
+        return [self.volatileProperties, self.sameStreet, resAnalysis]
     
     #city
     def city_property_price_trend(self,city,state):
@@ -145,15 +148,17 @@ class PriceTrend():
                         if (int(docData['price']) - res.json().price) > 80000:
                             self.volatileProperties[key] = docData
         #now, average prices of the predicted prices
-        avgPredictedPrice = 0
+        avgPredictedPrice = 0    
         cumulativeSum = 0
         ct = 0
         for price in self.predictedCityPrice:
             cumulativeSum += price
             ct += 1
         avgPredictedPrice = cumulativeSum/ct
+        #now, we do the price analysis using price-bot
+        resAnalysis = PriceBot().city_price_trend(self.actualCityPrice, avgPredictedPrice, city)
         #now we return the actual prices, the average predicted price, volatile properties, and all the properties in the same city
-        return [self.actualCityPrice, avgPredictedPrice, self.volatileProperties, self.sameCity]
+        return [self.volatileProperties, self.sameCity, resAnalysis]
     
     #county
     def county_property_price_trend(self, county,city,state):
@@ -208,8 +213,10 @@ class PriceTrend():
             cumulativeSum += price
             ct += 1
         avgPredictedPrice = cumulativeSum/ct
+        #now, we do the price analysis using price-bot
+        resAnalysis = PriceBot().county_price_trend(self.actualCountyPrice, avgPredictedPrice, county)
         #now we return the actual prices, the average predicted price, volatile properties, and all the properties in the same county
-        return [self.actualCountyPrice, avgPredictedPrice, self.volatileProperties, self.sameCounty]
+        return [self.volatileProperties, self.sameCounty, resAnalysis]
     
     #state
     def state_property_price_trend(self, state):
@@ -264,8 +271,10 @@ class PriceTrend():
             cumulativeSum += price
             ct += 1
         avgPredictedPrice = cumulativeSum/ct
+        #now, we do the price analysis using price-bot
+        resAnalysis = PriceBot().state_price_trend(self.actualStatePrice, avgPredictedPrice, state)
         #now we return the actual prices, the average predicted price, volatile properties, and all the properties in the same state
-        return [self.actualStatePrice, avgPredictedPrice, self.volatileProperties, self.sameState]
+        return [self.volatileProperties, self.sameState, resAnalysis]
 if __name__ == "__main__":
     print(PriceTrend().individual_property_price_trend('uuidv4'))
     print(PriceTrend().city_property_price_trend('testCity'))
