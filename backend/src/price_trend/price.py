@@ -42,6 +42,13 @@ class PriceTrend():
         self.sameCounty = {}
         self.sameState = {}
         self.volatileProperties = {}
+    
+    def extract_street_name(self,address):
+        parts = address.split(' ', 1)  # Split on the first space
+        if len(parts) > 1:
+            return parts[1]
+        return address
+
 
     #street
     def street_property_price_trend(self, street, city, county, state):
@@ -50,7 +57,7 @@ class PriceTrend():
             docKeys = list(doc.to_dict().keys())
             for key in docKeys:
                 docData = doc.to_dict()[key]
-                if (docData['street'] == street and docData['city'] == city and docData['county'] == county and docData['state'] == state):
+                if ((self.extract_street_name(docData['address'])).lower() == street.lower() and (docData['city']).lower() == city.lower() and (docData['county']).lower() == county.lower() and (docData['state']).lower() == state.lower()):
                     if key not in list(self.sameStreet.keys()):
                         self.sameStreet[key] = docData
                         self.actualStreetPrice.append(int(docData['price']))
@@ -65,10 +72,9 @@ class PriceTrend():
                             "state":[docData['state']]
                         }
                         res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
-                        print(res.json().price)
-                        self.predictedStreetPrice.append(res.json().price)
+                        self.predictedStreetPrice.append(res.json()['price'])
                         #logic for price volatility
-                        if (int(docData['price']) - res.json().price) > 80000:
+                        if abs(int(docData['price']) - res.json()['price']) > 80000:
                             self.volatileProperties[key] = docData
                     else:
                         self.sameStreet[key] = docData
@@ -84,23 +90,25 @@ class PriceTrend():
                             "state":[docData['state']]
                         }
                         res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
-                        print(res.json().price)
-                        self.predictedStreetPrice.append(res.json().price)
+                        self.predictedStreetPrice.append(res.json()['price'])
                         #logic for price volatility
-                        if (int(docData['price']) - res.json().price) > 80000:
+                        if abs(int(docData['price']) - res.json().price) > 80000:
                             self.volatileProperties[key] = docData
         #now, average prices of the predicted prices
-        avgPredictedPrice = 0
-        cumulativeSum = 0
-        ct = 0
-        for price in self.predictedStreetPrice:
-            cumulativeSum += price
-            ct += 1
-        avgPredictedPrice = cumulativeSum/ct
-        #now, we do the price analysis using price-bot
-        resAnalysis = PriceBot().street_price_trend(self.actualStreetPrice, avgPredictedPrice, street)
-        #now we return the actual prices, the average predicted price, volatile properties, and all the properties on the same street
-        return [self.volatileProperties, self.sameStreet, resAnalysis]
+        if (len(self.actualStreetPrice)>0):
+            avgPredictedPrice = 0
+            cumulativeSum = 0
+            ct = 0
+            for price in self.predictedStreetPrice:
+                cumulativeSum += price
+                ct += 1
+            avgPredictedPrice = cumulativeSum/ct
+            #now, we do the price analysis using price-bot
+            resAnalysis = PriceBot().street_price_trend(self.actualStreetPrice, avgPredictedPrice, street)
+            #now we return the actual prices, the average predicted price, volatile properties, and all the properties on the same street
+            return [self.volatileProperties, self.sameStreet, resAnalysis]
+        else:
+            return "No properties found on the given street"
     
     #city
     def city_property_price_trend(self,city,state):
@@ -108,7 +116,7 @@ class PriceTrend():
             docKeys = list(doc.to_dict().keys())
             for key in docKeys:
                 docData = doc.to_dict()[key]
-                if (docData['city'] == city and docData['state'] == state):
+                if ((docData['city']).lower() == city.lower() and( docData['state']).lower() == state.lower()):
                     if key not in list(self.sameCity.keys()):
                         self.sameCity[key] = docData
                         self.actualCityPrice.append(int(docData['price']))
@@ -123,10 +131,9 @@ class PriceTrend():
                             "state":[docData['state']]
                         }
                         res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
-                        print(res.json().price)
-                        self.predictedCityPrice.append(res.json().price)
+                        self.predictedCityPrice.append(res.json()['price'])
                         #logic for price volatility
-                        if (int(docData['price']) - res.json().price) > 80000:
+                        if abs(int(docData['price']) - res.json()['price']) > 80000:
                             self.volatileProperties[key] = docData
                     else:
                         self.sameCity[key] = docData
@@ -142,23 +149,25 @@ class PriceTrend():
                             "state":[docData['state']]
                         }
                         res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
-                        print(res.json().price)
-                        self.predictedCityPrice.append(res.json().price)
+                        self.predictedCityPrice.append(res.json()['price'])
                         #logic for price volatility
-                        if (int(docData['price']) - res.json().price) > 80000:
+                        if abs(int(docData['price']) - res.json()['price']) > 80000:
                             self.volatileProperties[key] = docData
         #now, average prices of the predicted prices
-        avgPredictedPrice = 0    
-        cumulativeSum = 0
-        ct = 0
-        for price in self.predictedCityPrice:
-            cumulativeSum += price
-            ct += 1
-        avgPredictedPrice = cumulativeSum/ct
-        #now, we do the price analysis using price-bot
-        resAnalysis = PriceBot().city_price_trend(self.actualCityPrice, avgPredictedPrice, city)
+        if (len(self.actualCityPrice)>0): 
+            avgPredictedPrice = 0    
+            cumulativeSum = 0
+            ct = 0
+            for price in self.predictedCityPrice:
+                cumulativeSum += price
+                ct += 1
+            avgPredictedPrice = cumulativeSum/ct
+            #now, we do the price analysis using price-bot
+            resAnalysis = PriceBot().city_price_trend(self.actualCityPrice, avgPredictedPrice, city)
         #now we return the actual prices, the average predicted price, volatile properties, and all the properties in the same city
-        return [self.volatileProperties, self.sameCity, resAnalysis]
+            return [self.volatileProperties, self.sameCity, resAnalysis]
+        else:
+            return "No properties found in the given city"
     
     #county
     def county_property_price_trend(self, county,city,state):
@@ -166,7 +175,7 @@ class PriceTrend():
             docKeys = list(doc.to_dict().keys())
             for key in docKeys:
                 docData = doc.to_dict()[key]
-                if (docData['county'] == county and docData['city'] == city and docData['state'] == state):
+                if ((docData['county']).lower() == county.lower() and (docData['city']).lower() == city.lower() and (docData['state']).lower() == state.lower()):
                     if key not in list(self.sameCounty.keys()):
                         self.sameCounty[key] = docData
                         self.actualCountyPrice.append(int(docData['price']))
@@ -181,10 +190,9 @@ class PriceTrend():
                             "state":[docData['state']]
                         }
                         res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
-                        print(res.json().price)
-                        self.predictedCountyPrice.append(res.json().price)
+                        self.predictedCountyPrice.append(res.json()['price'])
                         #logic for price volatility
-                        if (int(docData['price']) - res.json().price) > 80000:
+                        if abs(int(docData['price']) - res.json()['price']) > 80000:
                             self.volatileProperties[key] = docData
                     else:
                         self.sameCounty[key] = docData
@@ -200,23 +208,25 @@ class PriceTrend():
                             "state":[docData['state']]
                         }
                         res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
-                        print(res.json().price)
-                        self.predictedCountyPrice.append(res.json().price)
+                        self.predictedCountyPrice.append(res.json()['price'])
                         #logic for price volatility
-                        if (int(docData['price']) - res.json().price) > 80000:
+                        if abs(int(docData['price']) - res.json().price) > 80000:
                             self.volatileProperties[key] = docData
         #now, average prices of the predicted prices
-        avgPredictedPrice = 0
-        cumulativeSum = 0
-        ct = 0
-        for price in self.predictedCountyPrice:
-            cumulativeSum += price
-            ct += 1
-        avgPredictedPrice = cumulativeSum/ct
-        #now, we do the price analysis using price-bot
-        resAnalysis = PriceBot().county_price_trend(self.actualCountyPrice, avgPredictedPrice, county)
-        #now we return the actual prices, the average predicted price, volatile properties, and all the properties in the same county
-        return [self.volatileProperties, self.sameCounty, resAnalysis]
+        if (len(self.actualCountyPrice)>0):
+            avgPredictedPrice = 0
+            cumulativeSum = 0
+            ct = 0
+            for price in self.predictedCountyPrice:
+                cumulativeSum += price
+                ct += 1
+            avgPredictedPrice = cumulativeSum/ct
+            #now, we do the price analysis using price-bot
+            resAnalysis = PriceBot().county_price_trend(self.actualCountyPrice, avgPredictedPrice, county)
+            #now we return the actual prices, the average predicted price, volatile properties, and all the properties in the same county
+            return [self.volatileProperties, self.sameCounty, resAnalysis]
+        else:
+            return "No properties found in the given county"
     
     #state
     def state_property_price_trend(self, state):
@@ -224,7 +234,7 @@ class PriceTrend():
             docKeys = list(doc.to_dict().keys())
             for key in docKeys:
                 docData = doc.to_dict()[key]
-                if (docData['state'] == state):
+                if ((docData['state']).lower() == state.lower()):
                     if key not in list(self.sameState.keys()):
                         self.sameState[key] = docData
                         self.actualStatePrice.append(int(docData['price']))
@@ -239,10 +249,9 @@ class PriceTrend():
                             "state":[docData['state']]
                         }
                         res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
-                        print(res.json().price)
-                        self.predictedStatePrice.append(res.json().price)
+                        self.predictedStatePrice.append(res.json()['price'])
                         #logic for price volatility 
-                        if (int(docData['price']) - res.json().price) > 80000:
+                        if (int(docData['price']) - res.json()['price']) > 80000:
                             self.volatileProperties[key] = docData
                     else:
                         self.sameState[key] = docData
@@ -258,23 +267,25 @@ class PriceTrend():
                             "state":[docData['state']]
                         }
                         res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
-                        print(res.json().price)
-                        self.predictedStatePrice.append(res.json().price)
+                        self.predictedStatePrice.append(res.json()['price'])
                         #logic for price volatility
-                        if (int(docData['price']) - res.json().price) > 80000:
+                        if (int(docData['price']) - res.json()['price']) > 80000:
                             self.volatileProperties[key] = docData
         #now, average prices of the predicted prices
-        avgPredictedPrice = 0
-        cumulativeSum = 0
-        ct = 0
-        for price in self.predictedStatePrice:
-            cumulativeSum += price
-            ct += 1
-        avgPredictedPrice = cumulativeSum/ct
-        #now, we do the price analysis using price-bot
-        resAnalysis = PriceBot().state_price_trend(self.actualStatePrice, avgPredictedPrice, state)
-        #now we return the actual prices, the average predicted price, volatile properties, and all the properties in the same state
-        return [self.volatileProperties, self.sameState, resAnalysis]
+        if (len(self.actualStatePrice)>0):
+            avgPredictedPrice = 0
+            cumulativeSum = 0
+            ct = 0
+            for price in self.predictedStatePrice:
+                cumulativeSum += price
+                ct += 1
+            avgPredictedPrice = cumulativeSum/ct
+            #now, we do the price analysis using price-bot
+            resAnalysis = PriceBot().state_price_trend(self.actualStatePrice, avgPredictedPrice, state)
+            #now we return the actual prices, the average predicted price, volatile properties, and all the properties in the same state
+            return [self.volatileProperties, self.sameState, resAnalysis]
+        else:
+            return "No properties found in the given state"
 if __name__ == "__main__":
     print(PriceTrend().individual_property_price_trend('uuidv4'))
     print(PriceTrend().city_property_price_trend('testCity'))

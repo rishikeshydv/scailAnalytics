@@ -84,12 +84,51 @@ def individual_property_price_trend():
 def street_price_trend():
     try:
         streetInfo = request.json
-        res = PriceTrend().street_property_price_trend(streetInfo['street'], streetInfo['city'], streetInfo['state'])
+        res = PriceTrend().street_property_price_trend(streetInfo['street'], streetInfo['city'], streetInfo['county'] ,streetInfo['state'])
         return jsonify(message=res), 200
     except Exception as e:
         # Log the error message
         app.logger.error(f"Error: {e}")
         return jsonify(error="Internal Server Error"), 500
+    
+#price trend for a county
+@app.route('/api/v1/price-trend/county', methods=['POST'])
+def county_price_trend():
+    try:
+        streetInfo = request.json
+        res = PriceTrend().county_property_price_trend(streetInfo['county'], streetInfo['city'] ,streetInfo['state'])
+        return jsonify(message=res), 200
+    except Exception as e:
+        # Log the error message
+        app.logger.error(f"Error: {e}")
+        return jsonify(error="Internal Server Error"), 500
+    
+#price trend for a city
+@app.route('/api/v1/price-trend/city', methods=['POST'])
+def city_price_trend():
+    try:
+        streetInfo = request.json
+        res = PriceTrend().city_property_price_trend( streetInfo['city'],streetInfo['state'])
+        return jsonify(message=res), 200
+    except Exception as e:
+        # Log the error message
+        app.logger.error(f"Error: {e}")
+        return jsonify(error="Internal Server Error"), 500
+    
+#price trend for a state
+@app.route('/api/v1/price-trend/state', methods=['POST'])
+def state_price_trend():
+    try:
+        streetInfo = request.json
+        res = PriceTrend().state_property_price_trend(streetInfo['state'])
+        return jsonify(message=res), 200
+    except Exception as e:
+        # Log the error message
+        app.logger.error(f"Error: {e}")
+        return jsonify(error="Internal Server Error"), 500
+    
+    
+
     
 #getting the walkability score of the given latitude and longitude
 @app.route('/api/v1/walkability', methods=['POST'])
@@ -222,7 +261,11 @@ def get_demography():
     
 if __name__ == '__main__':
     try:
-        app.logger.info("Starting the server...")
-        serve(app, host="localhost", port=8080)
+        #debug mode
+        app.run(debug=True, host='localhost', port=8080)
+        #production mode
+        # app.logger.info("Starting the server...")
+        # serve(app, host="localhost", port=8080)
+        
     except Exception as e:
         app.logger.error(f"Failed to start the server: {e}")
