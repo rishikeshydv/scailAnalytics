@@ -127,9 +127,6 @@ def state_price_trend():
         app.logger.error(f"Error: {e}")
         return jsonify(error="Internal Server Error"), 500
     
-    
-
-    
 #getting the walkability score of the given latitude and longitude
 @app.route('/api/v1/walkability', methods=['POST'])
 def walkability():
@@ -252,7 +249,7 @@ def get_demography():
         demographyData = database.collection('demography').document("scail").get()._data
         demographyDataKeys = list(demographyData.keys())
         for i in range(len(demographyDataKeys)):
-            if city == demographyData[demographyDataKeys[i]]['city'] and state == demographyData[demographyDataKeys[i]]['state']:
+            if city.lower() == (demographyData[demographyDataKeys[i]]['city']).lower() and state.lower() == (demographyData[demographyDataKeys[i]]['state']).lower():
                 return jsonify(demography=demographyData[demographyDataKeys[i]]),200 
     except Exception as e:
         # Log the error message
