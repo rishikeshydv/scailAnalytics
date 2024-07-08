@@ -246,7 +246,12 @@ def get_demography():
         # Log the error message
         app.logger.error(f"Error: {e}")
         return jsonify(error="Internal Server Error"), 500
-    
+
+#server health status check
+@app.route('/api/v1/health', methods=['GET'])
+def health_check():
+    return jsonify(status="Server is up and running"), 200
+
 if __name__ == '__main__':
     try:
         #debug mode
