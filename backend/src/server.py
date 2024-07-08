@@ -5,7 +5,6 @@ import logging
 import requests
 from keras.models import load_model
 import pandas as pd
-import numpy as np
 from sklearn.pipeline import Pipeline
 from price_trend.price import PriceTrend
 from price_trend_bot.bot import PriceBot
@@ -25,7 +24,7 @@ WALKABILITY_API_KEY = os.getenv("WALKABILITY_API_KEY")
 class FirebaseConfig:
     def __init__(self):
         if not firebase_admin._apps:
-            cred = credentials.Certificate("backend/firebase/config.json")
+            cred = credentials.Certificate("config.json")
             firebase_admin.initialize_app(cred, {
                 'databaseURL': DATABASE_URL
             })
@@ -43,8 +42,8 @@ logging.basicConfig(level=logging.DEBUG)
 
 ########################################## HOUSE PRICE PREDICTION MODEL ###############################################
 #loading the model
-house_prediction_model = load_model('backend/src/house_price_prediction_model.h5')
-preprocessor1 = joblib.load('backend/src/price_preprocessor.pkl')
+house_prediction_model = load_model('house_price_prediction_model.h5')
+preprocessor1 = joblib.load('price_preprocessor.pkl')
 
 numerical_features_1 = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street']
 categorical_features_1 = ['city', 'state']
@@ -53,8 +52,8 @@ categorical_features_1 = ['city', 'state']
 ######################################### HOUSE RENT PREDICTION MODEL #################################
 ##############
 #loading the model
-rent_prediction_model = load_model('backend/src/rent_prediction_model.h5')
-preprocessor2 = joblib.load('backend/src/rent_preprocessor.pkl')
+rent_prediction_model = load_model('rent_prediction_model.h5')
+preprocessor2 = joblib.load('rent_preprocessor.pkl')
 
 numerical_features_2 = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street','price']
 categorical_features_2 = ['city', 'state']
@@ -64,8 +63,8 @@ categorical_features_2 = ['city', 'state']
 
 ########################################## SALES PROBABILITY MODEL ###############################################
 #loading the model
-sales_prediction_model = load_model('backend/src/sales_probability_prediction_model.h5')
-preprocessor3 = joblib.load('backend/src/sales_probability_preprocessor.pkl')
+sales_prediction_model = load_model('sales_probability_prediction_model.h5')
+preprocessor3 = joblib.load('sales_probability_preprocessor.pkl')
 
 numerical_features_3 = ['bed', 'bath', 'acre_lot', 'house_size','zip_code','street','price']
 categorical_features_3 = ['city', 'state']
@@ -251,10 +250,10 @@ def get_demography():
 if __name__ == '__main__':
     try:
         #debug mode
-        app.run(debug=True, host='localhost', port=8080)
+        #app.run(debug=True, host='localhost', port=8080)
         #production mode
-        # app.logger.info("Starting the server...")
-        # serve(app, host="localhost", port=8080)
+         app.logger.info("Starting the server...")
+         serve(app, host="0.0.0.0", port=8080)
         
     except Exception as e:
         app.logger.error(f"Failed to start the server: {e}")

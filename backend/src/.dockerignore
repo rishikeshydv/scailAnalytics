@@ -1,0 +1,23 @@
+# Environment variables
+.env
+
+# Git repository
+.git
+.gitignore
+
+# Docker configuration
+.dockerignore
+Dockerfile
+Dockerfile.*
+
+# Byte-compiled / optimized / DLL files
+__pycache__
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+.vscode
