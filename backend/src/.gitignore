@@ -1,0 +1,16 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+
+# Distribution / packaging
+.Python
+env/
+venv/
+ENV/
+
+# Environments
+.env
+.env.*
+
+#config.json file
+backend/src/crimes/config.json
+backend/firebase/config.json

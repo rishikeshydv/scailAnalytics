@@ -10,12 +10,20 @@ from firebase_admin import credentials
 from firebase_admin import firestore
 from price_trend_bot.bot import PriceBot
 import requests
+
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+# Load the environment variables
+DATABASE_URL = os.getenv("DATABASE_URL")
+
 class FirebaseConfig:
     def __init__(self):
         if not firebase_admin._apps:
             cred = credentials.Certificate("backend/firebase/config.json")
             firebase_admin.initialize_app(cred, {
-                'databaseURL': 'https://speety-2175-default-rtdb.firebaseio.com'
+                'databaseURL': DATABASE_URL
             })
         self.db = firestore.client()
     
@@ -71,7 +79,7 @@ class PriceTrend():
                             "city":[docData['city']],
                             "state":[docData['state']]
                         }
-                        res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
+                        res = requests.post('http://0.0.0.0:8080/api/v1/predict-price',json=requestData)
                         self.predictedStreetPrice.append(res.json()['price'])
                         #logic for price volatility
                         if abs(int(docData['price']) - res.json()['price']) > 80000:
@@ -89,7 +97,7 @@ class PriceTrend():
                             "city":[docData['city']],
                             "state":[docData['state']]
                         }
-                        res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
+                        res = requests.post('http://0.0.0.0:8080/api/v1/predict-price',json=requestData)
                         self.predictedStreetPrice.append(res.json()['price'])
                         #logic for price volatility
                         if abs(int(docData['price']) - res.json().price) > 80000:
@@ -130,7 +138,7 @@ class PriceTrend():
                             "city":[docData['city']],
                             "state":[docData['state']]
                         }
-                        res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
+                        res = requests.post('http://0.0.0.0:8080/api/v1/predict-price',json=requestData)
                         self.predictedCityPrice.append(res.json()['price'])
                         #logic for price volatility
                         if abs(int(docData['price']) - res.json()['price']) > 80000:
@@ -148,7 +156,7 @@ class PriceTrend():
                             "city":[docData['city']],
                             "state":[docData['state']]
                         }
-                        res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
+                        res = requests.post('http://0.0.0.0:8080/api/v1/predict-price',json=requestData)
                         self.predictedCityPrice.append(res.json()['price'])
                         #logic for price volatility
                         if abs(int(docData['price']) - res.json()['price']) > 80000:
@@ -189,7 +197,7 @@ class PriceTrend():
                             "city":[docData['city']],
                             "state":[docData['state']]
                         }
-                        res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
+                        res = requests.post('http://0.0.0.0:8080/api/v1/predict-price',json=requestData)
                         self.predictedCountyPrice.append(res.json()['price'])
                         #logic for price volatility
                         if abs(int(docData['price']) - res.json()['price']) > 80000:
@@ -207,7 +215,7 @@ class PriceTrend():
                             "city":[docData['city']],
                             "state":[docData['state']]
                         }
-                        res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
+                        res = requests.post('http://0.0.0.0:8080/api/v1/predict-price',json=requestData)
                         self.predictedCountyPrice.append(res.json()['price'])
                         #logic for price volatility
                         if abs(int(docData['price']) - res.json().price) > 80000:
@@ -248,7 +256,7 @@ class PriceTrend():
                             "city":[docData['city']],
                             "state":[docData['state']]
                         }
-                        res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
+                        res = requests.post('http://0.0.0.0:8080/api/v1/predict-price',json=requestData)
                         self.predictedStatePrice.append(res.json()['price'])
                         #logic for price volatility 
                         if (int(docData['price']) - res.json()['price']) > 80000:
@@ -266,7 +274,7 @@ class PriceTrend():
                             "city":[docData['city']],
                             "state":[docData['state']]
                         }
-                        res = requests.post('http://127.0.0.1:8080/api/v1/predict-price',json=requestData)
+                        res = requests.post('http://0.0.0.0:8080/api/v1/predict-price',json=requestData)
                         self.predictedStatePrice.append(res.json()['price'])
                         #logic for price volatility
                         if (int(docData['price']) - res.json()['price']) > 80000:
